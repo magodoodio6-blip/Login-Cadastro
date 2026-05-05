@@ -1,4 +1,9 @@
 <?php
+$conn = new mysqli("localhost", "root", "", "cadastro_db");
+
+if ($conn->connect_error) {
+    die("Erro na conexão: " . $conn->connect_error);
+}
 
 function validarCPF($cpf) {
     $cpf = preg_replace('/[^0-9]/', '', $cpf);
@@ -17,141 +22,49 @@ function validarCPF($cpf) {
     return true;
 }
 
-$msg = "";
-
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    $login = $_POST['login'];
-    $senha = $_POST['senha'];
-
-    $conn = new mysqli("localhost", "root", "", "cadastro_db");
-
-    if ($conn->connect_error) die("Erro");
-
-    $tipo = "";
-    $loginFinal = $login;
+    $login = $_POST["login"];
+    $senha = $_POST["senha"];
 
     if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
         $tipo = "email";
-    } elseif (preg_match('/^\d{10,11}$/', $login)) {
-        $tipo = "telefone";
     } elseif (validarCPF($login)) {
         $tipo = "cpf";
-        $loginFinal = password_hash($login, PASSWORD_DEFAULT);
     } else {
-        $msg = "Login inválido!";
+        $tipo = "telefone";
     }
 
-    if ($msg == "") {
+    $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
 
-        $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+    $stmt = $conn->prepare("INSERT INTO usuarios (login, senha, tipo) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $login, $senha_hash, $tipo);
 
-        $stmt = $conn->prepare("INSERT INTO usuarios (login, senha, tipo) VALUES (?, ?, ?)");
-        $stmt->bind_param("sss", $loginFinal, $senhaHash, $tipo);
-
-        $msg = $stmt->execute() ? "Cadastro realizado!" : "Erro ao cadastrar.";
-
-        $stmt->close();
-        $conn->close();
+    if ($stmt->execute()) {
+        echo "Cadastro realizado com sucesso!";
+    } else {
+        echo "Erro: login já existe.";
     }
+
+    $stmt->close();
 }
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Cadastro</title>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #f0f4f8;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-}
-.container {
-    background: #fff;
-    padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    width: 350px;
-    text-align: center;
-}
-h1 {
-    color: #333;
-    margin-bottom: 30px;
-    font-size: 1.5em;
-}
-label {
-    display: block;
-    text-align: left;
-    margin-bottom: 8px;
-    font-weight: bold;
-    color: #555;
-}
-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1em;
-    transition: border-color 0.3s;
-}
-input:focus {
-    border-color: #007BFF;
-    outline: none;
-}
-button {
-    background: #007BFF;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 6px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background 0.3s;
-    width: 100%;
-}
-button:hover {
-    background: #0056b3;
-}
-.secondary-btn {
-    background: #6c757d;
-}
-.secondary-btn:hover {
-    background: #5a6268;
-}
-</style>
-
+    <title>Cadastro</title>
 </head>
 <body>
-
-<div class="container">
-    <h1>Cadastro</h1>
-
-    <?php if ($msg) echo "<p>$msg</p>"; ?>
-
+    <h2>Cadastro</h2>
     <form method="POST">
-        <label>Email, Celular ou CPF</label>
-        <input type="text" name="login" required>
-
-        <label>Senha</label>
-        <input type="password" name="senha" required>
-
+        <input type="text" name="login" placeholder="Email, telefone ou CPF" required><br><br>
+        <input type="password" name="senha" placeholder="Senha" required><br><br>
         <button type="submit">Cadastrar</button>
     </form>
 
     <br>
-
-    <a href="login.php">
-        <button type="button" class="secondary-btn">Já tenho conta</button>
-    </a>
-</div>
-
+    <a href="login.php">Ir para Login</a>
 </body>
 </html>
