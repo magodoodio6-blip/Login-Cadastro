@@ -1,0 +1,13 @@
+CREATE DATABASE cadastro_db;
+
+USE cadastro_db;
+
+CREATE TABLE usuarios (
+id INT AUTO_INCREMENT PRIMARY KEY,
+login VARCHAR(255) NOT NULL,
+senha VARCHAR(255) NOT NULL,
+tipo ENUM('email', 'telefone', 'cpf') NOT NULL,
+criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE usuarios ADD UNIQUE (login);
